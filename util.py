@@ -1,21 +1,22 @@
 import cv2
 import numpy as np
-import argparse
+
+
+# This file includes all useful functions for doing homography with
+# a green screen or by using an ArUco marker. Not all of these functions are
+# called in either main.py or video.py, but they were used in my
+# experimentation for the project
 
 
 def createMask(img, HSV_LOW, HSV_HIGH):
-    output = img.copy()
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    # hsv = cv2.GaussianBlur(hsv, (11, 11), 1.75)
     hsv = cv2.bilateralFilter(hsv, 5, 75, 75)
     mask = cv2.inRange(hsv, HSV_LOW, HSV_HIGH)
     return mask
 
 
 def createMaskEdge(img, HSV_LOW, HSV_HIGH):
-    output = img.copy()
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    # hsv = cv2.GaussianBlur(hsv, (11, 11), 1.75)
     hsv = cv2.bilateralFilter(hsv, 5, 75, 75)
     mask = cv2.inRange(hsv, HSV_LOW, HSV_HIGH)
     mask = cv2.Canny(mask, 100, 200)
@@ -58,17 +59,17 @@ def locateEdges(mask, img):
     return img
 
 
-def locateCornersXY(mask, img):
+def locateCornersXY(mask, frame):
     # x1,y1 = top left
     # x2,y2 = top right
     # x3,y3 = bottom left
     # x4,y4 = bottom right
-
+    img = frame.copy()
     points = np.where(mask > 0)
     if points[0] is None:
-        return
+        return img
     if points[1] is None:
-        return
+        return img
     x1 = np.min(points[1])
     y1 = np.where(points[1] == x1)
     y1 = points[0][y1[0][0]]
@@ -93,12 +94,12 @@ def locateCornersXY(mask, img):
     return img
 
 
-def homographyColorMask(mask, src, dst):
+def homographyColorMask(mask, src, frame):
     # x1,y1 = top left
     # x2,y2 = top right
     # x3,y3 = bottom left
     # x4,y4 = bottom right
-
+    dst = frame.copy()
     points = np.where(mask > 0)
     if points is None:
         return
@@ -140,13 +141,12 @@ def homographyColorMask(mask, src, dst):
     tform, status = cv2.findHomography(pts_src, pts_dst)
 
     dst_shape = dst.shape[0:2]
-    warp = cv2.warpPerspective(src, tform, dst_shape)
+    warp = cv2.warpPerspective(src, tform, (dst_shape[1], dst_shape[0]))
 
-    # cv2.fillConvexPoly(dst, pts_dst.astype(int), 0, 16)
-    #
-    # dst = dst + warp
+    cv2.fillConvexPoly(dst, pts_dst.astype(int), 0, 16)
+    dst = dst + warp
 
-    return warp
+    return dst
 
 
 def homographyArUco(src, frame):
@@ -167,11 +167,10 @@ def homographyArUco(src, frame):
     pts_src = np.append(pts_src, [(0, height - 1)], axis=0)
 
     tform, status = cv2.findHomography(pts_src, markerCorners)
-    frame_shape = frame.shape[0:2]
     warp = cv2.warpPerspective(src, tform, (frame.shape[1], frame.shape[0]))
 
     cv2.fillConvexPoly(frame, markerCorners.astype(int), 0, 16)
 
-    im_out = frame+warp
+    im_out = frame + warp
 
     return im_out
