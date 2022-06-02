@@ -6,7 +6,6 @@ BLUE_MAX = np.array([130, 255, 255], np.uint8)
 BLUE_MIN = np.array([100, 90, 90], np.uint8)
 src = cv2.imread("input/spatula_512x512.png")
 cap = cv2.VideoCapture(0)
-# vid = cv2.VideoCapture("input/vid.mp4")
 vid = cv2.VideoCapture("input/LONELY_MANS_PING_PONG_TABLE1.mp4")
 frameCounter = 0
 while True:
